@@ -7,6 +7,21 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Mipo to access your camera for the photobooth."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Mipo to save your photobooth strip to the gallery.",
+          "savePhotosPermission": "Allow Mipo to save your photobooth strip to the gallery."
+        }
+      ]
+    ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
