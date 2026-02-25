@@ -35,13 +35,14 @@ export const TEXT_PANEL_APPROX_HEIGHT = 100;
  * Total strip height for a given number of photo slots (logical pixels).
  * Use this to set your template canvas height.
  */
-export function getStripHeight(slotCount: 2 | 3 | 4): number {
+export function getStripHeight(slotCount: 1 | 2 | 3 | 4): number {
   const photoAreaHeight =
     PHOTO_SLOT_HEIGHT * slotCount + PHOTO_SLOT_GAP * Math.max(0, slotCount - 1);
   return STRIP_PADDING * 2 + photoAreaHeight + TEXT_PANEL_APPROX_HEIGHT;
 }
 
-/** Strip dimensions at 1x (logical) for 2, 3, 4 slots */
+/** Strip dimensions at 1x (logical) for 1, 2, 3, 4 slots */
+export const STRIP_HEIGHT_1_SLOT = getStripHeight(1);
 export const STRIP_HEIGHT_2_SLOTS = getStripHeight(2);
 export const STRIP_HEIGHT_3_SLOTS = getStripHeight(3);
 export const STRIP_HEIGHT_4_SLOTS = getStripHeight(4);

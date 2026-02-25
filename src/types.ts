@@ -1,13 +1,13 @@
-export type TemplateCount = 2 | 3 | 4;
+export type TemplateCount = 1 | 2 | 3 | 4;
 
-/** Template from server: image + how many photos it can have (2, 3, or 4) */
+/** Template from server: image + how many photos it can have (1, 2, 3, or 4) */
 export interface Template {
   id: string;
   name: string;
   imageUrl: string | null;
   /** Default number of photo slots when using this template */
   slotCount: number;
-  /** Allowed slot counts for this template (2, 3, or 4). If present, user can choose. */
+  /** Allowed slot counts for this template (1, 2, 3, or 4). If present, user can choose. */
   slotOptions?: TemplateCount[];
 }
 

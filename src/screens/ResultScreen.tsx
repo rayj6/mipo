@@ -22,15 +22,19 @@ interface Props {
   generatedImageBase64: string | null;
   generatedImageMimeType: string;
   generateError: string | null;
-  /** Number of photo slots (2, 3, or 4) so strip height fits content */
-  slotCount?: 2 | 3 | 4;
+  /** Number of photo slots (1, 2, 3, or 4) so strip height fits content */
+  slotCount?: 1 | 2 | 3 | 4;
+  templateName?: string;
   onBack: () => void;
   onNewStrip: () => void;
+  /** Called after successfully saving to gallery; use to add to strip history. */
+  onSavedToGallery?: (entry: { uri: string; createdAt: string; templateName?: string }) => void;
 }
 
 const DATA_URI_PREFIX = 'data:';
 const STRIP_CONTENT_WIDTH = 280;
 const STRIP_HEIGHT_BY_SLOTS: Record<number, number> = {
+  1: 462,
   2: 798,
   3: 1148,
   4: 1498,
@@ -42,8 +46,10 @@ export function ResultScreen({
   generatedImageMimeType,
   generateError,
   slotCount = 3,
+  templateName,
   onBack,
   onNewStrip,
+  onSavedToGallery,
 }: Props) {
   const viewShotRef = useRef<ViewShot>(null);
   const saveFrameRef = useRef<ViewShot>(null);
@@ -105,6 +111,11 @@ export function ResultScreen({
           if (uri) {
             await MediaLibrary.saveToLibraryAsync(uri);
             setSaved(true);
+            onSavedToGallery?.({
+              uri,
+              createdAt: new Date().toISOString(),
+              templateName,
+            });
           } else {
             Alert.alert('Save failed', 'Could not create save image.');
           }

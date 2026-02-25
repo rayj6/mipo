@@ -11,12 +11,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type { Background } from '../types';
+import type { Background, Template } from '../types';
+import type { TemplateCount } from '../types';
 import { theme } from '../theme';
 
+const SLOT_OPTIONS: TemplateCount[] = [1, 2, 3, 4];
+
 interface Props {
+  template: Template | null;
   backgrounds: Background[];
   selected: Background | null;
+  selectedSlotCount: 1 | 2 | 3 | 4;
+  onSlotCountChange: (n: 1 | 2 | 3 | 4) => void;
   title: string;
   names: string;
   date: string;
@@ -30,8 +36,11 @@ interface Props {
 }
 
 export function BackgroundScreen({
+  template,
   backgrounds,
   selected,
+  selectedSlotCount,
+  onSlotCountChange,
   title,
   names,
   date,
@@ -67,6 +76,24 @@ export function BackgroundScreen({
       >
         <Text style={styles.title}>Strip details</Text>
         <Text style={styles.sub}>Optional text that appears on your strip.</Text>
+
+        {template != null && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Number of photos</Text>
+            <View style={styles.slotRow}>
+              {(template.slotOptions ?? SLOT_OPTIONS).map((n) => (
+                <TouchableOpacity
+                  key={n}
+                  style={[styles.slotPill, selectedSlotCount === n && styles.slotPillActive]}
+                  onPress={() => onSlotCountChange(n)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.slotPillText, selectedSlotCount === n && styles.slotPillTextActive]}>{n}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         {loading && backgrounds.length === 0 ? (
           <View style={styles.loading}>
@@ -205,6 +232,33 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+  },
+  slotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  slotPill: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+  },
+  slotPillActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  slotPillText: {
+    ...theme.typography.body,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  slotPillTextActive: {
+    color: theme.colors.surface,
   },
   input: {
     backgroundColor: theme.colors.surface,

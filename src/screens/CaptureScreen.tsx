@@ -1,9 +1,9 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { ChevronLeft, FlipHorizontal } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,11 +13,14 @@ import {
 import type { Template } from '../types';
 import { theme } from '../theme';
 
+const ICON_SIZE = 24;
+const ICON_COLOR = '#FFFFFF';
+
 const TIMER_OPTIONS = [0, 3, 5, 10] as const;
 
 interface Props {
   template: Template;
-  slotCount: 2 | 3 | 4;
+  slotCount: 1 | 2 | 3 | 4;
   onBack: () => void;
   onDone: (photos: string[]) => void;
 }
@@ -28,10 +31,11 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [timerSeconds, setTimerSeconds] = useState<0 | 3 | 5 | 10>(3);
+  const [facing, setFacing] = useState<'front' | 'back'>('front');
   const cameraRef = useRef<CameraView>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const count = Math.min(4, Math.max(2, slotCount));
+  const count = Math.min(4, Math.max(1, slotCount));
   const currentIndex = photos.length;
   const isComplete = currentIndex >= count;
 
@@ -100,10 +104,12 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
     return (
       <View style={styles.container}>
         <View style={styles.permCard}>
-          <Text style={styles.permEmoji}>📷</Text>
+          <View style={styles.permIconWrap}>
+            <Text style={styles.permEmoji}>📷</Text>
+          </View>
           <Text style={styles.permTitle}>Camera access</Text>
           <Text style={styles.permText}>
-            Allow camera access to take photos for your strip.
+            Mipo needs camera access to take photos for your strip.
           </Text>
           <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
             <Text style={styles.permBtnText}>Allow camera</Text>
@@ -121,7 +127,7 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
-        facing="front"
+        facing={facing}
         mode="picture"
       />
 
@@ -130,27 +136,62 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
           <View style={styles.countdownRing}>
             <Text style={styles.countdownNumber}>{countdown}</Text>
           </View>
-          <Text style={styles.countdownHint}>Get ready!</Text>
+          <Text style={styles.countdownLabel}>Get ready</Text>
         </View>
       )}
 
-      {/* Top bar */}
+      {/* Minimal top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.topBtn} onPress={onBack} hitSlop={12}>
-          <Text style={styles.topBtnText}>← Back</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={onBack} hitSlop={16}>
+          <ChevronLeft size={ICON_SIZE} color={ICON_COLOR} strokeWidth={2.5} />
         </TouchableOpacity>
-        <View style={styles.stepPill}>
-          <Text style={styles.stepPillText}>3. Shoot</Text>
-        </View>
-        <View style={styles.timerChips}>
+        <Text style={styles.topTitle}>Shoot</Text>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
+          disabled={countdown !== null}
+        >
+          <FlipHorizontal size={ICON_SIZE} color={ICON_COLOR} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Slot strip – visual progress */}
+      <View style={styles.slotStrip}>
+        {Array.from({ length: count }).map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[styles.slotCell, i < photos.length && styles.slotCellFilled]}
+            onPress={i === photos.length - 1 && !isComplete ? handleRemoveLast : undefined}
+            activeOpacity={i === photos.length - 1 && !isComplete ? 0.7 : 1}
+          >
+            {i < photos.length ? (
+              <Image source={{ uri: photos[i] }} style={styles.slotThumb} />
+            ) : (
+              <View style={styles.slotEmpty}>
+                <Text style={styles.slotEmptyText}>{i + 1}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+      {photos.length > 0 && !isComplete && (
+        <TouchableOpacity style={styles.undoBtn} onPress={handleRemoveLast}>
+          <Text style={styles.undoBtnText}>Undo last</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Timer row */}
+      <View style={styles.timerRow}>
+        <Text style={styles.timerLabel}>Timer</Text>
+        <View style={styles.timerOptions}>
           {TIMER_OPTIONS.map((sec) => (
             <TouchableOpacity
               key={sec}
-              style={[styles.chip, timerSeconds === sec && styles.chipActive]}
+              style={[styles.timerChip, timerSeconds === sec && styles.timerChipActive]}
               onPress={() => setTimerSeconds(sec)}
               disabled={countdown !== null}
             >
-              <Text style={[styles.chipText, timerSeconds === sec && styles.chipTextActive]}>
+              <Text style={[styles.timerChipText, timerSeconds === sec && styles.timerChipTextActive]}>
                 {sec === 0 ? 'Now' : `${sec}s`}
               </Text>
             </TouchableOpacity>
@@ -158,50 +199,24 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
         </View>
       </View>
 
-      {/* Bottom control card - compact */}
-      <View style={styles.bottomCard}>
-        <View style={styles.bottomRow}>
-          <Text style={styles.progressText}>{currentIndex}/{count}</Text>
-          {photos.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.thumbsScroll}
-              contentContainerStyle={styles.thumbsContent}
-            >
-              {photos.map((uri, i) => (
-                <View key={i} style={styles.thumbWrap}>
-                  <Image source={{ uri }} style={styles.thumb} />
-                  <View style={styles.thumbBadge}>
-                    <Text style={styles.thumbBadgeText}>{i + 1}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          ) : null}
-          {photos.length > 0 && !isComplete && (
-            <TouchableOpacity style={styles.removeBtn} onPress={handleRemoveLast}>
-              <Text style={styles.removeBtnText}>Undo</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.captureRow}>
-          <TouchableOpacity
-            style={[styles.captureBtn, (isCapturing || isComplete) && styles.captureBtnDisabled]}
-            onPress={handleCapture}
-            disabled={isCapturing || isComplete}
-            activeOpacity={0.9}
-          >
-            <View style={styles.captureBtnInner} />
-          </TouchableOpacity>
-        </View>
+      {/* Shutter + Create strip */}
+      <View style={styles.controls}>
         <TouchableOpacity
-          style={[styles.doneBtn, !isComplete && styles.doneBtnDisabled]}
+          style={[styles.shutterBtn, (isCapturing || isComplete) && styles.shutterBtnDisabled]}
+          onPress={handleCapture}
+          disabled={isCapturing || isComplete}
+          activeOpacity={0.85}
+        >
+          <View style={styles.shutterInner} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.createBtn, !isComplete && styles.createBtnDisabled]}
           onPress={handleDone}
           disabled={!isComplete}
           activeOpacity={0.9}
         >
-          <Text style={styles.doneBtnText}>Create strip</Text>
+          <Text style={styles.createBtnText}>Create strip</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -226,9 +241,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing.xl,
   },
+  permIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: theme.colors.primaryDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
   permEmoji: {
-    fontSize: 56,
-    marginBottom: theme.spacing.md,
+    fontSize: 44,
   },
   permTitle: {
     ...theme.typography.titleSmall,
@@ -266,33 +289,33 @@ const styles = StyleSheet.create({
   // Countdown
   countdownOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
   },
   countdownRing: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 6,
-    borderColor: 'rgba(255,255,255,0.9)',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 5,
+    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   countdownNumber: {
-    fontSize: 72,
+    fontSize: 64,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  countdownHint: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
+  countdownLabel: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.9)',
     letterSpacing: 0.5,
   },
 
-  // Top bar
+  // Top bar – minimal
   topBar: {
     position: 'absolute',
     top: 0,
@@ -302,173 +325,185 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingTop: Platform.OS === 'ios' ? 56 : 44,
+    paddingTop: Platform.OS === 'ios' ? 52 : 40,
     paddingBottom: theme.spacing.sm,
     zIndex: 10,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  topBtn: {
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-  },
-  topBtnText: {
-    ...theme.typography.bodySmall,
+  iconBtnText: {
+    fontSize: 28,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '300',
+    lineHeight: 32,
   },
-  stepPill: {
+  topTitle: {
+    ...theme.typography.bodySmall,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  // Slot strip – film-style progress
+  slotStrip: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 108 : 96,
+    left: theme.spacing.md,
+    right: theme.spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  slotCell: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  slotCellFilled: {
+    borderColor: 'rgba(255,255,255,0.8)',
+  },
+  slotThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  slotEmpty: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slotEmptyText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  undoBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 172 : 160,
+    alignSelf: 'center',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: theme.radii.full,
+    zIndex: 10,
   },
-  stepPillText: {
-    ...theme.typography.caption,
-    color: '#FFFFFF',
+  undoBtnText: {
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.95)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  timerChips: {
+
+  // Timer
+  timerRow: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 200 : 184,
+    left: theme.spacing.md,
+    right: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    zIndex: 10,
   },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  timerLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  timerOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timerChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: theme.radii.full,
   },
-  chipActive: {
+  timerChipActive: {
     backgroundColor: theme.colors.primary,
   },
-  chipText: {
-    fontSize: 12,
+  timerChipText: {
+    fontSize: 13,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.95)',
   },
-  chipTextActive: {
+  timerChipTextActive: {
     color: '#FFFFFF',
   },
 
-  // Bottom card - compact
-  bottomCard: {
+  // Controls – shutter + create
+  controls: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: theme.radii.lg,
-    borderTopRightRadius: theme.radii.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: 10,
-    paddingBottom: (Platform.OS === 'ios' ? 28 : 16) + 10,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: (Platform.OS === 'ios' ? 34 : 20) + theme.spacing.md,
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: theme.spacing.sm,
-    minHeight: 44,
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    minWidth: 28,
-  },
-  thumbsScroll: {
-    flex: 1,
-    maxHeight: 48,
-  },
-  thumbsContent: {
-    flexDirection: 'row',
-    gap: 8,
     alignItems: 'center',
   },
-  thumbWrap: {
-    position: 'relative',
-  },
-  thumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: theme.colors.border,
-  },
-  thumbBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  removeBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-  removeBtnText: {
-    fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  captureRow: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  captureBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 3,
+  shutterBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderWidth: 4,
     borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 1 },
+    marginBottom: theme.spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  captureBtnDisabled: {
-    opacity: 0.5,
+  shutterBtnDisabled: {
+    opacity: 0.6,
     borderColor: theme.colors.border,
   },
-  captureBtnInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  shutterInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: theme.colors.primary,
   },
-  doneBtn: {
+  createBtn: {
     width: '100%',
+    maxWidth: 280,
     backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-    borderRadius: theme.radii.md,
+    paddingVertical: 14,
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
-  doneBtnDisabled: {
-    backgroundColor: theme.colors.border,
-    opacity: 0.8,
+  createBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    opacity: 0.9,
   },
-  doneBtnText: {
+  createBtnText: {
     ...theme.typography.button,
     color: theme.colors.surface,
-    fontSize: 16,
+    fontSize: 17,
   },
 });

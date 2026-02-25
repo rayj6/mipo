@@ -9,25 +9,24 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import type { Template, TemplateCount } from '../types';
+import type { Template } from '../types';
 import { theme } from '../theme';
 
 interface Props {
   templates: Template[];
   selected: Template | null;
-  selectedSlotCount: 2 | 3 | 4;
-  onSlotCountChange: (n: 2 | 3 | 4) => void;
   loading: boolean;
   onSelect: (t: Template) => void;
   onBack: () => void;
   onContinue: () => void;
+  /** When true, hide the back button (e.g. when used as Home tab). */
+  hideBack?: boolean;
 }
-
-const SLOT_OPTIONS: TemplateCount[] = [2, 3, 4];
 
 /** Pinterest-style: varying aspect ratios by slot count (taller = more slots) */
 function getCardAspectRatio(slotCount: number): number {
-  if (slotCount <= 2) return 0.95;
+  if (slotCount <= 1) return 1.0;
+  if (slotCount === 2) return 0.95;
   if (slotCount === 3) return 0.78;
   return 0.65;
 }
@@ -35,12 +34,11 @@ function getCardAspectRatio(slotCount: number): number {
 export function TemplateScreen({
   templates,
   selected,
-  selectedSlotCount,
-  onSlotCountChange,
   loading,
   onSelect,
   onBack,
   onContinue,
+  hideBack = false,
 }: Props) {
   const { width } = useWindowDimensions();
   const gap = theme.spacing.sm;
@@ -52,10 +50,12 @@ export function TemplateScreen({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-            <Text style={styles.backPillText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.step}>1. Template</Text>
+          {hideBack ? <View style={styles.backPill} /> : (
+            <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
+              <Text style={styles.backPillText}>← Back</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.step}>{hideBack ? 'Templates' : '1. Template'}</Text>
         </View>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -90,7 +90,7 @@ export function TemplateScreen({
           />
         ) : (
           <View style={[styles.pinPlaceholder, { height: cardWidth / aspect }]}>
-            {Array.from({ length: Math.min(4, Math.max(2, t.slotCount ?? 3)) }).map((_, i) => (
+            {Array.from({ length: Math.min(4, Math.max(1, t.slotCount ?? 3)) }).map((_, i) => (
               <View key={i} style={styles.placeholderSlot} />
             ))}
           </View>
@@ -105,30 +105,16 @@ export function TemplateScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-          <Text style={styles.backPillText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.step}>1. Template</Text>
+        {hideBack ? <View style={styles.backPill} /> : (
+          <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
+            <Text style={styles.backPillText}>← Back</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.step}>{hideBack ? 'Templates' : '1. Template'}</Text>
       </View>
 
       <Text style={styles.title}>Pick a style</Text>
       <Text style={styles.sub}>Choose how your strip will look.</Text>
-
-      {selected != null && (
-        <View style={styles.slotRow}>
-          <Text style={styles.slotLabel}>Photos</Text>
-          {SLOT_OPTIONS.map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={[styles.slotPill, selectedSlotCount === n && styles.slotPillActive]}
-              onPress={() => onSlotCountChange(n)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.slotPillText, selectedSlotCount === n && styles.slotPillTextActive]}>{n}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
       <ScrollView
         style={styles.scroll}
@@ -193,38 +179,6 @@ const styles = StyleSheet.create({
     ...theme.typography.bodySmall,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.lg,
-  },
-  slotRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-  },
-  slotLabel: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.textMuted,
-  },
-  slotPill: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  slotPillActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  slotPillText: {
-    ...theme.typography.body,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-  },
-  slotPillTextActive: {
-    color: theme.colors.surface,
   },
   loading: {
     flex: 1,
