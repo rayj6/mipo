@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { ChevronLeft, FlipHorizontal } from 'lucide-react-native';
+import { Camera, ChevronLeft, FlipHorizontal } from 'lucide-react-native';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -105,7 +105,7 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
       <View style={styles.container}>
         <View style={styles.permCard}>
           <View style={styles.permIconWrap}>
-            <Text style={styles.permEmoji}>📷</Text>
+            <Camera size={48} color={theme.colors.primary} strokeWidth={1.8} />
           </View>
           <Text style={styles.permTitle}>Camera access</Text>
           <Text style={styles.permText}>
@@ -115,6 +115,7 @@ export function CaptureScreen({ template, slotCount, onBack, onDone }: Props) {
             <Text style={styles.permBtnText}>Allow camera</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.permBack} onPress={onBack}>
+            <ChevronLeft size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />
             <Text style={styles.permBackText}>Back</Text>
           </TouchableOpacity>
         </View>
@@ -250,9 +251,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },
-  permEmoji: {
-    fontSize: 44,
-  },
   permTitle: {
     ...theme.typography.titleSmall,
     color: theme.colors.text,
@@ -278,6 +276,9 @@ const styles = StyleSheet.create({
     color: theme.colors.surface,
   },
   permBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
   },

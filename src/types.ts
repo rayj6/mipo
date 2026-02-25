@@ -9,6 +9,8 @@ export interface Template {
   slotCount: number;
   /** Allowed slot counts for this template (1, 2, 3, or 4). If present, user can choose. */
   slotOptions?: TemplateCount[];
+  /** If true, available on free plan; if false, paid only. */
+  isFree?: boolean;
 }
 
 /** Background from server: image */

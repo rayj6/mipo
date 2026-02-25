@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-react-native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import type { Template } from '../types';
 import { theme } from '../theme';
+import { useI18n } from '../i18n/context';
 
 interface Props {
   templates: Template[];
@@ -41,6 +43,7 @@ export function TemplateScreen({
   hideBack = false,
 }: Props) {
   const { width } = useWindowDimensions();
+  const { t: tr } = useI18n();
   const gap = theme.spacing.sm;
   const padding = theme.spacing.lg;
   const numCols = 2;
@@ -52,7 +55,8 @@ export function TemplateScreen({
         <View style={styles.header}>
           {hideBack ? <View style={styles.backPill} /> : (
             <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-              <Text style={styles.backPillText}>← Back</Text>
+              <ChevronLeft size={22} color={theme.colors.textSecondary} strokeWidth={2.5} />
+              <Text style={styles.backPillText}>Back</Text>
             </TouchableOpacity>
           )}
           <Text style={styles.step}>{hideBack ? 'Templates' : '1. Template'}</Text>
@@ -71,32 +75,37 @@ export function TemplateScreen({
     else rightColumn.push(t);
   });
 
-  const renderCard = (t: Template) => {
-    const aspect = getCardAspectRatio(t.slotCount ?? 3);
-    const cardHeight = cardWidth / aspect;
-    const isSelected = selected?.id === t.id;
+  const renderCard = (template: Template) => {
+    const aspect = getCardAspectRatio(template.slotCount ?? 3);
+    const isSelected = selected?.id === template.id;
+    const isFree = template.isFree !== false;
     return (
       <TouchableOpacity
-        key={t.id}
+        key={template.id}
         style={[styles.pinCard, isSelected && styles.pinCardActive, { width: cardWidth, marginBottom: gap }]}
-        onPress={() => onSelect(t)}
+        onPress={() => onSelect(template)}
         activeOpacity={0.9}
       >
-        {t.imageUrl ? (
-          <Image
-            source={{ uri: t.imageUrl }}
-            style={[styles.pinImage, { height: cardWidth / aspect }]}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.pinPlaceholder, { height: cardWidth / aspect }]}>
-            {Array.from({ length: Math.min(4, Math.max(1, t.slotCount ?? 3)) }).map((_, i) => (
-              <View key={i} style={styles.placeholderSlot} />
-            ))}
+        <View style={styles.pinImageWrap}>
+          {template.imageUrl ? (
+            <Image
+              source={{ uri: template.imageUrl }}
+              style={[styles.pinImage, { height: cardWidth / aspect }]}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.pinPlaceholder, { height: cardWidth / aspect }]}>
+              {Array.from({ length: Math.min(4, Math.max(1, template.slotCount ?? 3)) }).map((_, i) => (
+                <View key={i} style={styles.placeholderSlot} />
+              ))}
+            </View>
+          )}
+          <View style={[styles.badge, isFree ? styles.badgeFree : styles.badgePaid]}>
+            <Text style={styles.badgeText}>{isFree ? tr('templateBadge.free') : tr('templateBadge.paid')}</Text>
           </View>
-        )}
+        </View>
         <View style={styles.pinLabel}>
-          <Text style={styles.pinName} numberOfLines={1}>{t.name}</Text>
+          <Text style={styles.pinName} numberOfLines={1}>{template.name}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -107,7 +116,8 @@ export function TemplateScreen({
       <View style={styles.header}>
         {hideBack ? <View style={styles.backPill} /> : (
           <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-            <Text style={styles.backPillText}>← Back</Text>
+            <ChevronLeft size={22} color={theme.colors.textSecondary} strokeWidth={2.5} />
+            <Text style={styles.backPillText}>Back</Text>
           </TouchableOpacity>
         )}
         <Text style={styles.step}>{hideBack ? 'Templates' : '1. Template'}</Text>
@@ -157,6 +167,9 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
   },
@@ -214,9 +227,33 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
+  pinImageWrap: {
+    position: 'relative',
+    width: '100%',
+  },
   pinImage: {
     width: '100%',
     backgroundColor: theme.colors.border,
+  },
+  badge: {
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.radii.sm,
+  },
+  badgeFree: {
+    backgroundColor: 'rgba(34, 197, 94, 0.9)',
+  },
+  badgePaid: {
+    backgroundColor: 'rgba(234, 179, 8, 0.9)',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.3,
   },
   pinPlaceholder: {
     width: '100%',

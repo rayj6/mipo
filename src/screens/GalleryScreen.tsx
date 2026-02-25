@@ -1,3 +1,4 @@
+import { Images } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
@@ -41,7 +42,9 @@ export function GalleryScreen({ entries, onRefresh }: Props) {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyEmoji}>🖼️</Text>
+          <View style={styles.emptyIconWrap}>
+            <Images size={56} color={theme.colors.textMuted} strokeWidth={1.5} />
+          </View>
           <Text style={styles.emptyTitle}>No strips yet</Text>
           <Text style={styles.emptySub}>
             Create a strip and save it to your gallery. It will appear here.
@@ -146,8 +149,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl,
     alignItems: 'center',
   },
-  emptyEmoji: {
-    fontSize: 48,
+  emptyIconWrap: {
     marginBottom: theme.spacing.md,
   },
   emptyTitle: {

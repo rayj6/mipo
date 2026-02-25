@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-react-native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -63,7 +64,8 @@ export function BackgroundScreen({
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-          <Text style={styles.backPillText}>← Back</Text>
+          <ChevronLeft size={22} color={theme.colors.textSecondary} strokeWidth={2.5} />
+          <Text style={styles.backPillText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.step}>2. Details</Text>
       </View>
@@ -189,6 +191,9 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
   },

@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../theme';
-import { loginUser, registerUser } from '../storage';
+import * as authService from '../services/authService';
+import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 
 type Mode = 'login' | 'register';
 
@@ -28,6 +30,7 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSubmit = async () => {
     setError('');
@@ -48,18 +51,27 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
     setLoading(true);
     try {
       if (mode === 'login') {
-        const result = await loginUser(trimmedEmail, password);
-        if (result.success) onSuccess();
-        else setError(result.error ?? 'Login failed.');
+        await authService.login(trimmedEmail, password);
+        onSuccess();
       } else {
-        const result = await registerUser(trimmedEmail, password, trimmedName);
-        if (result.success) onSuccess();
-        else setError(result.error ?? 'Registration failed.');
+        await authService.register(trimmedEmail, password, trimmedName || trimmedEmail.split('@')[0]);
+        onSuccess();
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordScreen
+        onBack={() => setShowForgotPassword(false)}
+        initialEmail={email.trim()}
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -68,8 +80,9 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} hitSlop={12}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity onPress={onBack} hitSlop={12} style={styles.backBtn}>
+          <ChevronLeft size={22} color={theme.colors.primary} strokeWidth={2.5} />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {returnTo === 'gallery' ? 'Gallery' : 'Profile'}
@@ -125,6 +138,15 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
             secureTextEntry
             editable={!loading}
           />
+          {mode === 'login' && (
+            <TouchableOpacity
+              style={styles.forgotLink}
+              onPress={() => setShowForgotPassword(true)}
+              disabled={loading}
+            >
+              <Text style={styles.forgotLinkText}>Forgot password?</Text>
+            </TouchableOpacity>
+          )}
           {mode === 'register' && (
             <TextInput
               style={styles.input}
@@ -172,6 +194,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   backText: {
     ...theme.typography.bodySmall,
@@ -247,6 +274,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginBottom: theme.spacing.sm,
+  },
+  forgotLinkText: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   submitBtn: {
     backgroundColor: theme.colors.primary,

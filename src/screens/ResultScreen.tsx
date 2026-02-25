@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -12,10 +13,12 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import ViewShot from 'react-native-view-shot';
-import { writeAsStringAsync, cacheDirectory, readAsStringAsync } from 'expo-file-system/legacy';
+import * as ScreenCapture from 'expo-screen-capture';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { theme } from '../theme';
 import { uploadTempImage, getSaveFrameUrl } from '../api';
+import { useI18n } from '../i18n/context';
 
 interface Props {
   generatedStripUrl: string | null;
@@ -25,10 +28,16 @@ interface Props {
   /** Number of photo slots (1, 2, 3, or 4) so strip height fits content */
   slotCount?: 1 | 2 | 3 | 4;
   templateName?: string;
+  /** If false, user must have a paid plan to save; if true, anyone can save. */
+  templateIsFree?: boolean;
+  /** Whether the current user has an active paid plan (for paid templates). */
+  userHasPaidPlan?: boolean;
   onBack: () => void;
   onNewStrip: () => void;
   /** Called after successfully saving to gallery; use to add to strip history. */
   onSavedToGallery?: (entry: { uri: string; createdAt: string; templateName?: string }) => void;
+  /** When user tries to save a paid template without a plan, call to open pricing (optional). */
+  onOpenPricing?: () => void;
 }
 
 const DATA_URI_PREFIX = 'data:';
@@ -47,10 +56,14 @@ export function ResultScreen({
   generateError,
   slotCount = 3,
   templateName,
+  templateIsFree = true,
+  userHasPaidPlan = false,
   onBack,
   onNewStrip,
   onSavedToGallery,
+  onOpenPricing,
 }: Props) {
+  const { t } = useI18n();
   const viewShotRef = useRef<ViewShot>(null);
   const saveFrameRef = useRef<ViewShot>(null);
   const pendingSaveRef = useRef<{ capture: () => Promise<void> } | null>(null);
@@ -59,6 +72,15 @@ export function ResultScreen({
   const [stripReady, setStripReady] = useState(false);
   const [saveFrameUrl, setSaveFrameUrl] = useState<string | null>(null);
   const { width: windowWidth } = useWindowDimensions();
+
+  const canSaveByPlan = templateIsFree || userHasPaidPlan;
+
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync().catch(() => {});
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync().catch(() => {});
+    };
+  }, []);
 
   const SAVE_FRAME_WIDTH = 600;
   const SAVE_FRAME_HEIGHT = 800;
@@ -76,6 +98,19 @@ export function ResultScreen({
 
   const handleSaveToGallery = async () => {
     if (Platform.OS === 'web') return;
+    if (!canSaveByPlan) {
+      Alert.alert(
+        t('result.upgradeTitle'),
+        t('result.upgradeToSave'),
+        onOpenPricing
+          ? [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('pricing.title'), onPress: onOpenPricing },
+            ]
+          : [{ text: t('common.ok') }]
+      );
+      return;
+    }
     setSaving(true);
     setSaved(false);
     try {
@@ -139,7 +174,10 @@ export function ResultScreen({
     pendingSaveRef.current = null;
   };
 
-  const canSave = Platform.OS !== 'web' && (generatedStripUrl || generatedImageBase64);
+  const canSave =
+    Platform.OS !== 'web' &&
+    canSaveByPlan &&
+    (generatedStripUrl || generatedImageBase64);
   const saveReady = generatedStripUrl ? stripReady : true;
   const hasResult = !generateError && (generatedStripUrl || imageUri);
 
@@ -147,7 +185,8 @@ export function ResultScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backPill} onPress={onBack} hitSlop={12}>
-          <Text style={styles.backPillText}>← Back</Text>
+          <ChevronLeft size={22} color={theme.colors.textSecondary} strokeWidth={2.5} />
+          <Text style={styles.backPillText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.step}>Your strip</Text>
       </View>
@@ -203,11 +242,24 @@ export function ResultScreen({
                   activeOpacity={0.85}
                 >
                   <Text style={styles.saveBtnText}>
-                    {saving ? 'Saving…' : saved ? 'Saved!' : !saveReady ? 'Loading…' : 'Save to gallery'}
+                    {saving ? t('result.saving') : saved ? t('result.saved') : !saveReady ? t('result.loading') : t('result.saveToGallery')}
                   </Text>
                 </TouchableOpacity>
                 {saved ? (
-                  <Text style={styles.savedHint}>Strip saved to your gallery.</Text>
+                  <Text style={styles.savedHint}>{t('result.savedHint')}</Text>
+                ) : null}
+              </>
+            ) : !canSaveByPlan ? (
+              <>
+                <Text style={styles.upgradeHint}>{t('result.upgradeToSave')}</Text>
+                {onOpenPricing ? (
+                  <TouchableOpacity
+                    style={[styles.saveBtn, styles.saveBtnSecondary]}
+                    onPress={onOpenPricing}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.saveBtnText, styles.saveBtnSecondaryText]}>{t('pricing.title')}</Text>
+                  </TouchableOpacity>
                 ) : null}
               </>
             ) : (
@@ -266,6 +318,9 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
   },
   backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
   },
@@ -356,6 +411,20 @@ const styles = StyleSheet.create({
     color: theme.colors.success,
     marginTop: theme.spacing.sm,
     textAlign: 'center',
+  },
+  upgradeHint: {
+    ...theme.typography.bodySmall,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  saveBtnSecondary: {
+    backgroundColor: theme.colors.surfaceElevated ?? theme.colors.border,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  saveBtnSecondaryText: {
+    color: theme.colors.text,
   },
   screenshotHint: {
     ...theme.typography.bodySmall,

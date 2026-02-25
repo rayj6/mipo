@@ -1,46 +1,9 @@
-import type { Background, Template } from './types';
-
-const getBaseUrl = () => {
-  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_MIPO_SERVER_URL) {
-    return process.env.EXPO_PUBLIC_MIPO_SERVER_URL;
-  }
-  if (typeof process !== 'undefined' && process.env?.MIPO_SERVER_URL) {
-    return process.env.MIPO_SERVER_URL;
-  }
-  // Development: use your machine IP or ngrok URL for device
-  return 'http://localhost:3001';
-};
-
-export async function fetchTemplates(): Promise<Template[]> {
-  const base = getBaseUrl();
-  const res = await fetch(`${base}/api/templates`);
-  if (!res.ok) throw new Error('Failed to fetch templates');
-  const data = await res.json();
-  return data;
-}
-
-export async function fetchBackgrounds(): Promise<Background[]> {
-  const base = getBaseUrl();
-  const res = await fetch(`${base}/api/backgrounds`);
-  if (!res.ok) throw new Error('Failed to fetch backgrounds');
-  const data = await res.json();
-  return data;
-}
-
-export function getTemplateImageUrl(template: Template): string | null {
-  return template.imageUrl;
-}
-
-export function getBackgroundImageUrl(background: Background): string | null {
-  return background.imageUrl;
-}
+import { getBaseUrl } from './client';
 
 export interface GenerateStripRequest {
-  /** Template id (e.g. template_1, template_2) so server serves the right HTML. Optional; server defaults to first template. */
   templateId?: string;
   templateImageUrl: string | null;
   backgroundImageUrl: string | null;
-  /** Number of frames in the selected template (2, 3, or 4) */
   slotCount: number;
   photoBase64s: string[];
   title: string;
@@ -50,7 +13,6 @@ export interface GenerateStripRequest {
 
 export interface GenerateStripResponse {
   success: boolean;
-  /** URL to strip.html with photos in frames (show in WebView) */
   stripUrl?: string;
   imageBase64?: string;
   mimeType?: string;

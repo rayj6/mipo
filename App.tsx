@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { readAsStringAsync } from 'expo-file-system/legacy';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { I18nProvider, useI18n, isValidLocale } from './src/i18n';
 import { fetchTemplates, fetchBackgrounds, generateStrip } from './src/api';
 import type { Background, Template } from './src/types';
 import {
@@ -11,11 +12,12 @@ import {
   addGalleryEntry,
   getPermissionsDone,
   setPermissionsDone,
-  getCurrentUser,
-  logoutUser,
-  type User,
+  getHasPaidPlan,
+  setHasPaidPlan,
   type GalleryEntry,
 } from './src/storage';
+import * as authService from './src/services/authService';
+import type { User } from './src/services/authService';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { TemplateScreen } from './src/screens/TemplateScreen';
 import { BackgroundScreen } from './src/screens/BackgroundScreen';
@@ -26,12 +28,14 @@ import { GalleryScreen } from './src/screens/GalleryScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { PermissionsScreen } from './src/screens/PermissionsScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
+import { PricingScreen } from './src/screens/PricingScreen';
 import { TabBar, type TabId } from './src/components/TabBar';
 
-type Step = 'welcome' | 'permissions' | 'main' | 'auth' | 'background' | 'capture' | 'generating' | 'result';
+type Step = 'welcome' | 'permissions' | 'main' | 'auth' | 'pricing' | 'background' | 'capture' | 'generating' | 'result';
 
-export default function App() {
+function AppContent() {
   const [initializing, setInitializing] = useState(true);
+  const { setLocale } = useI18n();
   const [hasSeenWelcome, setHasSeenWelcomeState] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [step, setStep] = useState<Step>('welcome');
@@ -55,25 +59,31 @@ export default function App() {
   const [generatedStripUrl, setGeneratedStripUrl] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const generatingRef = useRef(false);
+  const [hasPaidPlan, setHasPaidPlanState] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [seen, done, currentUser, entries] = await Promise.all([
-        getWelcomeSeen(),
-        getPermissionsDone(),
-        getCurrentUser(),
-        getGalleryEntries(),
-      ]);
-      if (!cancelled) {
-        setHasSeenWelcomeState(seen);
-        setUser(currentUser);
-        setGalleryEntries(entries);
-        if (!seen) setStep('welcome');
-        else if (!done) setStep('permissions');
-        else setStep('main');
+      try {
+        const [seen, done, currentUser, entries, paid] = await Promise.all([
+          getWelcomeSeen(),
+          getPermissionsDone(),
+          authService.getCurrentUser().catch(() => null),
+          getGalleryEntries(),
+          getHasPaidPlan(),
+        ]);
+        if (!cancelled) {
+          setHasSeenWelcomeState(seen);
+          setUser(currentUser ?? null);
+          setGalleryEntries(entries);
+          setHasPaidPlanState(paid);
+          if (!seen) setStep('welcome');
+          else if (!done) setStep('permissions');
+          else setStep('main');
+        }
+      } finally {
+        if (!cancelled) setInitializing(false);
       }
-      if (!cancelled) setInitializing(false);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -172,7 +182,7 @@ export default function App() {
   }, [user]);
 
   const handleAuthSuccess = useCallback(async () => {
-    const currentUser = await getCurrentUser();
+    const currentUser = await authService.getCurrentUser();
     setUser(currentUser);
     setStep('main');
     if (pendingAuthTab) {
@@ -187,8 +197,29 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    await logoutUser();
+    await authService.logout();
     setUser(null);
+  }, []);
+
+  const handleDeleteAccount = useCallback(async (password: string) => {
+    await authService.deleteAccount(password);
+    setUser(null);
+  }, []);
+
+  const handleLanguageChange = useCallback((updatedUser: User) => {
+    setUser(updatedUser);
+  }, []);
+
+  useEffect(() => {
+    if (user?.language && isValidLocale(user.language)) setLocale(user.language);
+  }, [user?.language, setLocale]);
+
+  const handleOpenPricing = useCallback(() => {
+    setStep('pricing');
+  }, []);
+
+  const handlePricingBack = useCallback(() => {
+    setStep('main');
   }, []);
 
   const refreshGallery = useCallback(async () => {
@@ -246,6 +277,15 @@ export default function App() {
     );
   }
 
+  if (step === 'permissions') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <PermissionsScreen onContinue={handlePermissionsDone} />
+      </SafeAreaView>
+    );
+  }
+
   if (step === 'main') {
     return (
       <SafeAreaView style={styles.container}>
@@ -270,7 +310,13 @@ export default function App() {
             <GalleryScreen entries={galleryEntries} onRefresh={refreshGallery} />
           )}
           {activeTab === 'profile' && (
-            <ProfileScreen user={user} onLogout={handleLogout} />
+            <ProfileScreen
+              user={user}
+              onLogout={handleLogout}
+              onDeleteAccount={handleDeleteAccount}
+              onOpenPricing={handleOpenPricing}
+              onLanguageChange={handleLanguageChange}
+            />
           )}
         </View>
         <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
@@ -343,9 +389,40 @@ export default function App() {
           generateError={generateError}
           slotCount={selectedSlotCount}
           templateName={template?.name}
+          templateIsFree={template?.isFree !== false}
+          userHasPaidPlan={hasPaidPlan}
           onBack={goBack}
           onNewStrip={handleNewStrip}
           onSavedToGallery={handleSavedToGallery}
+          onOpenPricing={handleOpenPricing}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (step === 'auth') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <AuthScreen
+          returnTo={pendingAuthTab ?? 'profile'}
+          onSuccess={handleAuthSuccess}
+          onBack={handleAuthBack}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (step === 'pricing') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <PricingScreen
+          onBack={handlePricingBack}
+          onPurchaseSuccess={async () => {
+            await setHasPaidPlan(true);
+            setHasPaidPlanState(true);
+          }}
         />
       </SafeAreaView>
     );
@@ -369,3 +446,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default function App() {
+  return (
+    <I18nProvider>
+      <AppContent />
+    </I18nProvider>
+  );
+}

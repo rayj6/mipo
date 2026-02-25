@@ -1,3 +1,4 @@
+import { Camera } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
@@ -46,7 +47,9 @@ export function PermissionsScreen({ onContinue }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.emoji}>📷</Text>
+        <View style={styles.iconWrap}>
+          <Camera size={48} color={theme.colors.primary} strokeWidth={1.8} />
+        </View>
         <Text style={styles.title}>Permissions</Text>
         <Text style={styles.sub}>
           Mipo needs access to your camera to take photos and to your location to tag your strips. You can change these later in Settings.
@@ -96,8 +99,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  emoji: {
-    fontSize: 48,
+  iconWrap: {
     marginBottom: theme.spacing.md,
   },
   title: {
