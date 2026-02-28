@@ -58,7 +58,8 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
         onSuccess();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      const msg = e instanceof Error ? e.message : 'Something went wrong.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -95,6 +96,7 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.card}>
           <View style={styles.toggleRow}>
@@ -164,6 +166,7 @@ export function AuthScreen({ returnTo, onSuccess, onBack }: Props) {
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.9}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -219,6 +222,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.lg,
     paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl * 2,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: theme.colors.surface,
@@ -287,8 +292,10 @@ const styles = StyleSheet.create({
   submitBtn: {
     backgroundColor: theme.colors.primary,
     paddingVertical: 16,
+    minHeight: 48,
     borderRadius: theme.radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: theme.spacing.sm,
   },
   submitBtnDisabled: {

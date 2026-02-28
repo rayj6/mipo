@@ -1,4 +1,4 @@
-import { getBaseUrl } from './client';
+import { getBaseUrl, fetchWithTimeout, DEFAULT_TIMEOUT_MS, STRIP_TIMEOUT_MS } from './client';
 
 export interface GenerateStripRequest {
   templateId?: string;
@@ -21,20 +21,27 @@ export interface GenerateStripResponse {
 
 export async function generateStrip(request: GenerateStripRequest): Promise<GenerateStripResponse> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/generate-strip`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      templateImageUrl: request.templateImageUrl,
-      backgroundImageUrl: request.backgroundImageUrl,
-      templateId: request.templateId,
-      slotCount: request.slotCount,
-      photoBase64s: request.photoBase64s,
-      title: request.title,
-      names: request.names,
-      date: request.date,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(`${base}/api/generate-strip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        templateImageUrl: request.templateImageUrl,
+        backgroundImageUrl: request.backgroundImageUrl,
+        templateId: request.templateId,
+        slotCount: request.slotCount,
+        photoBase64s: request.photoBase64s,
+        title: request.title,
+        names: request.names,
+        date: request.date,
+      }),
+      timeoutMs: STRIP_TIMEOUT_MS,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Request failed';
+    return { success: false, error: msg };
+  }
   const text = await res.text();
   let data: GenerateStripResponse;
   try {
@@ -53,11 +60,17 @@ export async function generateStrip(request: GenerateStripRequest): Promise<Gene
 
 export async function uploadTempImage(imageBase64: string): Promise<{ imageUrl: string } | { error: string }> {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/temp-upload`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageBase64 }),
-  });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(`${base}/api/temp-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64 }),
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Upload failed' };
+  }
   const text = await res.text();
   let data: { imageUrl?: string; error?: string };
   try {

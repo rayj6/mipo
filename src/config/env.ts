@@ -1,13 +1,14 @@
 /**
  * Centralized env/config for the app.
- * Use EXPO_PUBLIC_MIPO_SERVER_URL or MIPO_SERVER_URL for the API base URL.
+ * EAS build: set EXPO_PUBLIC_MIPO_SERVER_URL (or EXPO_PUBLIC_SERVER_URL) in eas.json for production.
  */
 export function getServerBaseUrl(): string {
-  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_MIPO_SERVER_URL) {
-    return process.env.EXPO_PUBLIC_MIPO_SERVER_URL.replace(/\/$/, '');
-  }
-  if (typeof process !== 'undefined' && process.env?.MIPO_SERVER_URL) {
-    return process.env.MIPO_SERVER_URL.replace(/\/$/, '');
+  const url =
+    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_MIPO_SERVER_URL) ||
+    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SERVER_URL) ||
+    (typeof process !== 'undefined' && process.env?.MIPO_SERVER_URL);
+  if (url && typeof url === 'string') {
+    return url.replace(/\/$/, '');
   }
   return 'http://localhost:3001';
 }

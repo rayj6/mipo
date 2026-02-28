@@ -11,14 +11,20 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Mipo to access your camera for the photobooth."
+          "cameraPermission": "Mipo uses your camera to take photos for the photobooth strips. For example, you take photos at an event and we combine them into a single strip to save or share."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Mipo to save your photobooth strip to the gallery.",
-          "savePhotosPermission": "Allow Mipo to save your photobooth strip to the gallery."
+          "photosPermission": "Mipo saves your completed photobooth strip to your photo library so you can share or print it. For example, after creating a strip at a wedding, you can save it to your Photos app.",
+          "savePhotosPermission": "Mipo saves your completed photobooth strip to your photo library so you can share or print it."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Mipo uses your location to optionally tag your photobooth strips with the place they were taken (e.g. Wedding at Sunset Hall) so you can remember where each strip was created. Location is only used when you create a strip and is not shared with others."
         }
       ]
     ],
@@ -28,7 +34,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rayj.mipo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -36,10 +46,25 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b6a5723b-b6ba-4261-bff2-127afab7174b"
+      }
     }
   }
 }

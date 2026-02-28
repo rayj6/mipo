@@ -259,9 +259,9 @@ export function ProfileScreen({ user, onLogout, onDeleteAccount, onOpenPricing, 
                   <Text style={styles.modalConfirmText}>{t('profile.deleteAccount')}</Text>
                 )}
               </TouchableOpacity>
-            </View>
-          </View>
         </View>
+      </View>
+    </View>
       </Modal>
     </ScrollView>
   );

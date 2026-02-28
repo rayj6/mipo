@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 18.0.5",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SERVER_URL": "https://mipoapi.scarlet-technology.com"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SERVER_URL": "https://mipoapi.scarlet-technology.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_MIPO_SERVER_URL": "https://mipoapi.scarlet-technology.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
