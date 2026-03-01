@@ -5,6 +5,9 @@ export interface User {
   email: string;
   displayName: string;
   language?: string;
+  planId?: string;
+  subscriptionExpiresAt?: string | null;
+  hasPaidAccess?: boolean;
 }
 
 export interface LoginResponse {
@@ -95,7 +98,7 @@ export async function deleteAccount(token: string, password: string): Promise<{ 
   return data as { message: string };
 }
 
-export async function updateProfile(token: string, data: { language?: string }): Promise<User> {
+export async function updateProfile(token: string, data: { language?: string; planId?: string; subscriptionExpiresAt?: string | null }): Promise<User> {
   const { data: res, status } = await apiRequest<User | ApiError>('/api/auth/profile', {
     method: 'PATCH',
     token,

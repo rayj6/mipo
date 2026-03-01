@@ -9,6 +9,8 @@ export interface GenerateStripRequest {
   title: string;
   names: string;
   date: string;
+  /** If user is signed in, pass token so server can allow paid templates for paid users and admins. */
+  token?: string | null;
 }
 
 export interface GenerateStripResponse {
@@ -21,11 +23,13 @@ export interface GenerateStripResponse {
 
 export async function generateStrip(request: GenerateStripRequest): Promise<GenerateStripResponse> {
   const base = getBaseUrl();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (request.token) headers.Authorization = `Bearer ${request.token}`;
   let res: Response;
   try {
     res = await fetchWithTimeout(`${base}/api/generate-strip`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         templateImageUrl: request.templateImageUrl,
         backgroundImageUrl: request.backgroundImageUrl,

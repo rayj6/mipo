@@ -76,7 +76,7 @@ function AppContent() {
           setHasSeenWelcomeState(seen);
           setUser(currentUser ?? null);
           setGalleryEntries(entries);
-          setHasPaidPlanState(paid);
+          setHasPaidPlanState(currentUser?.hasPaidAccess ?? paid);
           if (!seen) setStep('welcome');
           else if (!done) setStep('permissions');
           else setStep('main');
@@ -134,6 +134,7 @@ function AppContent() {
           photoBase64s.push(base64);
         }
         const slotCount = Math.min(4, Math.max(1, selectedSlotCount)) || photos.length;
+        const token = await authService.getToken();
         const result = await generateStrip({
           templateId: template.id,
           templateImageUrl: template.imageUrl,
@@ -143,6 +144,7 @@ function AppContent() {
           title,
           names,
           date,
+          token: token ?? undefined,
         });
         if (result.success && (result.stripUrl || result.imageBase64)) {
           if (result.stripUrl) setGeneratedStripUrl(result.stripUrl);
@@ -184,6 +186,7 @@ function AppContent() {
   const handleAuthSuccess = useCallback(async () => {
     const currentUser = await authService.getCurrentUser();
     setUser(currentUser);
+    setHasPaidPlanState(currentUser?.hasPaidAccess ?? false);
     setStep('main');
     if (pendingAuthTab) {
       setActiveTab(pendingAuthTab);
@@ -199,6 +202,7 @@ function AppContent() {
   const handleLogout = useCallback(async () => {
     await authService.logout();
     setUser(null);
+    setHasPaidPlanState(false);
   }, []);
 
   const handleDeleteAccount = useCallback(async (password: string) => {
@@ -220,6 +224,22 @@ function AppContent() {
 
   const handlePricingBack = useCallback(() => {
     setStep('main');
+  }, []);
+
+  const handlePurchaseSuccess = useCallback(async (planId: 'WEEKLY' | 'PRO' | 'ANNUAL') => {
+    const now = new Date();
+    const addDays = (d: Date, days: number) => { const x = new Date(d); x.setDate(x.getDate() + days); return x; };
+    const expiryByPlan = { WEEKLY: addDays(now, 7), PRO: addDays(now, 31), ANNUAL: addDays(now, 366) };
+    const subscriptionExpiresAt = expiryByPlan[planId]?.toISOString() ?? addDays(now, 31).toISOString();
+    try {
+      const updatedUser = await authService.updateProfile({ planId, subscriptionExpiresAt });
+      setHasPaidPlanState(updatedUser.hasPaidAccess ?? true);
+      setUser(updatedUser);
+      await setHasPaidPlan(true);
+    } catch {
+      setHasPaidPlanState(true);
+      await setHasPaidPlan(true);
+    }
   }, []);
 
   const refreshGallery = useCallback(async () => {
@@ -419,10 +439,7 @@ function AppContent() {
         <StatusBar style="dark" />
         <PricingScreen
           onBack={handlePricingBack}
-          onPurchaseSuccess={async () => {
-            await setHasPaidPlan(true);
-            setHasPaidPlanState(true);
-          }}
+          onPurchaseSuccess={handlePurchaseSuccess}
         />
       </SafeAreaView>
     );

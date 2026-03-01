@@ -14,8 +14,8 @@ import * as iapService from '../services/iapService';
 
 interface Props {
   onBack: () => void;
-  /** Called when user successfully completes a paid purchase (so app can mark them as paid). */
-  onPurchaseSuccess?: () => void;
+  /** Called when user successfully completes a paid purchase; receives planId so server can be updated. */
+  onPurchaseSuccess?: (planId: PlanId) => void;
 }
 
 export function PricingScreen({ onBack, onPurchaseSuccess }: Props) {
@@ -29,7 +29,7 @@ export function PricingScreen({ onBack, onPurchaseSuccess }: Props) {
     try {
       const result = await iapService.purchasePlan(plan.id);
       if (result.success) {
-        onPurchaseSuccess?.();
+        onPurchaseSuccess?.(plan.id);
       }
     } finally {
       setPurchasingPlanId(null);

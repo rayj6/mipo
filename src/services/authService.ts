@@ -56,7 +56,7 @@ export async function deleteAccount(password: string): Promise<void> {
   await setStoredUser(null);
 }
 
-export async function updateProfile(data: { language?: string }): Promise<User> {
+export async function updateProfile(data: { language?: string; planId?: string; subscriptionExpiresAt?: string | null }): Promise<User> {
   const token = await getStoredToken();
   if (!token) throw new Error('Not signed in');
   const user = await authApi.updateProfile(token, data);
