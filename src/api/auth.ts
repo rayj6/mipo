@@ -19,6 +19,14 @@ export interface RegisterResponse {
   user: User;
   token: string;
 }
+export interface DemoAccountResponse {
+  user: User;
+  token: string;
+  demoCredentials?: {
+    email: string;
+    password: string;
+  };
+}
 
 export interface ApiError {
   error: string;
@@ -52,6 +60,16 @@ export async function register(
     throw new Error((data as ApiError).error || 'Registration failed');
   }
   return data as RegisterResponse;
+}
+
+export async function createDemoAccount(): Promise<DemoAccountResponse> {
+  const { data, status } = await apiRequest<DemoAccountResponse | ApiError>('/api/auth/demo-account', {
+    method: 'POST',
+  });
+  if (status !== 200) {
+    throw new Error((data as ApiError).error || 'Failed to create demo account');
+  }
+  return data as DemoAccountResponse;
 }
 
 export async function getMe(token: string): Promise<User> {

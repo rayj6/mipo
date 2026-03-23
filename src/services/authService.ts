@@ -35,6 +35,13 @@ export async function register(email: string, password: string, displayName: str
   return user;
 }
 
+export async function createDemoAccount(): Promise<User> {
+  const { user, token } = await authApi.createDemoAccount();
+  await setStoredToken(token);
+  await setStoredUser(user);
+  return user;
+}
+
 export async function logout(): Promise<void> {
   await setStoredToken(null);
   await setStoredUser(null);
