@@ -10,5 +10,7 @@ export function getServerBaseUrl(): string {
   if (url && typeof url === 'string') {
     return url.replace(/\/$/, '');
   }
-  return 'http://localhost:3001';
+  // Never fall back to localhost in release builds (App Review devices cannot reach it).
+  // Keep localhost only for local development.
+  return typeof __DEV__ !== 'undefined' && __DEV__ ? 'http://localhost:3001' : 'https://mipoapi.scarlet-technology.com';
 }
